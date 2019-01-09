@@ -196,29 +196,29 @@ open class LineChartRenderer: LineRadarRenderer
         
         _xBounds.set(chart: dataProvider, dataSet: dataSet, animator: animator)
         
-        // get the color that is specified for this position from the DataSet
-        let drawingColor = dataSet.colors.first!
-        
         // the path for the cubic-spline
-        let cubicPath = CGMutablePath()
         
         let valueToPixelMatrix = trans.valueToPixelMatrix
         
+        
+        
+        context.saveGState()
         if _xBounds.range >= 1
         {
             var prev: ChartDataEntry! = dataSet.entryForIndex(_xBounds.min)
             var cur: ChartDataEntry! = prev
             
             if cur == nil { return }
-            
-            // let the spline start
-            cubicPath.move(to: CGPoint(x: CGFloat(cur.x), y: CGFloat(cur.y * phaseY)), transform: valueToPixelMatrix)
-            
             for j in stride(from: (_xBounds.min + 1), through: _xBounds.range + _xBounds.min, by: 1)
             {
+                let cubicPath = CGMutablePath()
+                
+                context.beginPath()
+                // let the spline start
+                cubicPath.move(to: CGPoint(x: CGFloat(cur.x), y: CGFloat(cur.y * phaseY)), transform: valueToPixelMatrix)
                 prev = cur
                 cur = dataSet.entryForIndex(j)
-                
+                //                if cur == nil { continue }
                 let cpx = CGFloat(prev.x + (cur.x - prev.x) / 2.0)
                 
                 cubicPath.addCurve(
@@ -232,23 +232,20 @@ open class LineChartRenderer: LineRadarRenderer
                         x: cpx,
                         y: CGFloat(cur.y * phaseY)),
                     transform: valueToPixelMatrix)
+                
+                if dataSet.isDrawFilledEnabled
+                {
+                    // Copy this path because we make changes to it
+                    let fillPath = cubicPath.mutableCopy()
+                    
+                    drawCubicFill(context: context, dataSet: dataSet, spline: fillPath!, matrix: valueToPixelMatrix, bounds: _xBounds)
+                }
+                context.addPath(cubicPath)
+                context.setStrokeColor(dataSet.colors[j].cgColor)
+                context.strokePath()
             }
         }
         
-        context.saveGState()
-        
-        if dataSet.isDrawFilledEnabled
-        {
-            // Copy this path because we make changes to it
-            let fillPath = cubicPath.mutableCopy()
-            
-            drawCubicFill(context: context, dataSet: dataSet, spline: fillPath!, matrix: valueToPixelMatrix, bounds: _xBounds)
-        }
-        
-        context.beginPath()
-        context.addPath(cubicPath)
-        context.setStrokeColor(drawingColor.cgColor)
-        context.strokePath()
         
         context.restoreGState()
     }
@@ -722,8 +719,7 @@ open class LineChartRenderer: LineRadarRenderer
                     
                     if drawCircleHole
                     {
-                        context.setFillColor(dataSet.circleHoleColor!.cgColor)
-                     
+                        context.setFillColor(dataSet.colors[j].cgColor)
                         // The hole rect
                         rect.origin.x = pt.x - circleHoleRadius
                         rect.origin.y = pt.y - circleHoleRadius
