@@ -719,7 +719,11 @@ open class LineChartRenderer: LineRadarRenderer
                     
                     if drawCircleHole
                     {
-                        context.setFillColor(dataSet.colors[j].cgColor)
+                        if j <= (dataSet.colors.count - 1){
+                            context.setFillColor(dataSet.colors[j].cgColor)
+                        }else{
+                            context.setFillColor(dataSet.circleHoleColor!.cgColor)
+                        }
                         // The hole rect
                         rect.origin.x = pt.x - circleHoleRadius
                         rect.origin.y = pt.y - circleHoleRadius
